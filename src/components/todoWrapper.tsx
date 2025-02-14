@@ -1,21 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import TodoForm from './todoForm';
 import Todo from './todo';
-// define the interface for the todo item
+
 interface TodoItem {
   id: number;
   text: string;
   completed: boolean;
+  deadline?: Date;
 }
-// state to hold the todos  and the functions to add, toggle and remove todos
-const TodoWrapper: React.FC = () => {
+
+interface TodoWrapperProps {
+  setHistory: React.Dispatch<React.SetStateAction<TodoItem[]>>;
+}
+
+const TodoWrapper: React.FC<TodoWrapperProps> = ({ setHistory }) => {
   const [todos, setTodos] = useState<TodoItem[]>([]);
-//add
-  const addTodo = (text: string) => {
-    const newTodo = { id: Date.now(), text, completed: false };
+
+  const addTodo = (text: string, deadline?: Date) => {
+    const newTodo = { id: Date.now(), text, completed: false, deadline };
     setTodos([...todos, newTodo]);
   };
-//toggle
+
   const toggleComplete = (id: number) => {
     setTodos(
       todos.map(todo =>
@@ -23,16 +28,31 @@ const TodoWrapper: React.FC = () => {
       )
     );
   };
-//remove
+
   const removeTodo = (id: number) => {
-    setTodos(todos.filter(todo => todo.id !== id));
+    const todoToRemove = todos.find(todo => todo.id === id);
+    if (todoToRemove) {
+      setHistory(prevHistory => [...prevHistory, todoToRemove]);
+      setTodos(todos.filter(todo => todo.id !== id));
+    }
   };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      todos.forEach(todo => {
+        if (todo.deadline && !todo.completed && todo.deadline.getTime() - now.getTime() <= 3600000) { // 1 hour
+          alert(`Deadline approaching for: ${todo.text}`);
+        }
+      });
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [todos]);
 
   return (
     <div>
-      /* pass the addTodo function to the TodoForm component
       <TodoForm addTodo={addTodo} />
-      // pass the todos, toggleComplete and removeTodo functions to the Todo component
       {todos.map(todo => (
         <Todo
           key={todo.id}
